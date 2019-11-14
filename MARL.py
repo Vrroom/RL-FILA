@@ -31,7 +31,7 @@ def shareStateQLearning (env, stop, seed) :
         # Initialization of predator states
         predatorStates = [i for i in range(env.nPredator)]
 
-        while not env.terminate():
+        while not env.jointTerminate():
 
             aList = []
 
@@ -99,7 +99,7 @@ def independentQLearning (env, stop, seed) :
         # Initialization of predator states
         predatorStates = [i for i in range(env.nPredator)]
 
-        while not env.terminate():
+        while not env.jointTerminate():
 
             aList = []
 
@@ -132,7 +132,6 @@ def independentQLearning (env, stop, seed) :
         env.initialize()
         episode += 1
 
-
         es.append(episode)
         ts.append(timestep)
 
@@ -142,7 +141,7 @@ def independentQLearning (env, stop, seed) :
 
 def main () :
     env = GridWorld()
-    _, es1, ts1 = independentQLearning(env, lambda x : x < 100, 0)
+    qList, es1, ts1 = independentQLearning(env, lambda x : x < 100, 0)
     _, es2, ts2 = shareStateQLearning(env, lambda x : x < 100, 0)
     iQL  = plt.scatter(es1, ts1, c='red')
     ssQL = plt.scatter(es2, ts2, c='blue')
@@ -152,7 +151,7 @@ def main () :
     plt.ylabel("Cumulative TimeSteps")
     plt.legend()
     plt.show()
-    # env.simulateTrajectory(qList)
+    env.simulateTrajectory(qList)
 
 if __name__ == "__main__" : 
     main()
