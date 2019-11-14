@@ -54,12 +54,12 @@ class GridWorld :
         self, 
         rows=20, 
         cols=20, 
-        nPredator=10, 
-        nPrey=5, 
+        nPredator=3, 
+        nPrey=1, 
         perceptWindow=3, 
         seed=0
         ) :
-        
+    
         self.rows = rows
         self.cols = cols
         self.nPredator = nPredator
@@ -95,7 +95,7 @@ class GridWorld :
         # Broadcast the perceptual state of 
         # the predator at pId to the rest of
         # the predators.
-        for pId_, predator in enumerate(predators) :
+        for pId_, predator in enumerate(self.predators) :
             if pId != pId :
                 predators[pId].updateKnowledge(predator)
 
