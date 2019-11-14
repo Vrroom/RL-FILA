@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from itertools import product
 from Utils import *
 
-def independentQLearning (env, stop, seed, plot=False) :
+def independentQLearning (env, stop, seed) :
     # Independent Q-Learning where each
     # predator has its own action-value function.
     gen = np.random.RandomState(seed)
@@ -30,16 +30,15 @@ def independentQLearning (env, stop, seed, plot=False) :
     while stop(episode):
         # Initialization of predator states
         predatorStates = [i for i in range(env.nPredator)]
-        preyCaught = False
 
-        while not preyCaught:
+        while not env.terminate():
 
             aList = []
 
             for i in range(env.nPredator) :
                 Q = qList[i]
                 s = predatorStates[i]
-                a = env.selectAction(Q, s, (T / (episode + 1)))
+                a = env.selectAction(Q, s, (T / np.log2(episode + 3)))
                 aList.append(a)
 
             # Move the prey.
@@ -51,9 +50,6 @@ def independentQLearning (env, stop, seed, plot=False) :
                 a = aList[i]
                 # Get next state and reward
                 s_, r = env.next(i, s, a)
-                # Check whether prey has been caught.
-                if s_ == (0, 0) :
-                    preyCaught = True
 
                 # Update this predator's Q function.
                 Q[s][a.value] += BETA * (r + GAMMA * np.max(Q[s_]) - Q[s][a.value])
@@ -72,15 +68,13 @@ def independentQLearning (env, stop, seed, plot=False) :
         es.append(episode)
         ts.append(timestep)
 
-    if plot :
-        plt.plot(es, ts)
-        plt.show()
+    return qList, es, ts
 
-    return qList
+
 
 def main () :
     env = GridWorld()
-    qList = independentQLearning(env, lambda x : x < 100, 0, plot=True)
+    qList, = independentQLearning(env, lambda x : x < 1000, 0, plot=True)
     env.simulateTrajectory(qList)
 
 if __name__ == "__main__" : 

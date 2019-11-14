@@ -11,6 +11,40 @@ class Action (Enum) :
     Up    = 2
     Down  = 3
 
+# TODO : KILL PREY 
+
+
+class Predator : 
+
+    def __init__ (self, pId, pos) :
+        self.pId = pId
+        self.pos = pos
+        self.state = pId
+        self.knowledge = dict()
+
+    def setState(self, s) :
+        self.state = s
+
+    def getState(self) :
+        return self.state
+
+    def setPosition(self, pos) : 
+        self.pos = pos
+
+    def getPosition(self) :
+        return self.pos
+
+    def updateKnowledge(self, otherPredator) : 
+        # If the other predator has something 
+        # meaningful to contribute (in the form of a
+        # finite perceptual state), then update this
+        # predator's knowledge.
+        s_ = otherPredator.getState()
+        if isinstance(s_, tuple) :
+            self.knowledge[otherPredator.id] = s_
+        else :
+            self.knowledge[otherPredator.id] = None
+
 def manhattanDistance(p1, p2) : 
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
 
@@ -18,11 +52,11 @@ class GridWorld :
     
     def __init__ (
         self, 
-        rows=10, 
-        cols=10, 
-        nPredator=3, 
-        nPrey=4, 
-        perceptWindow=2, 
+        rows=20, 
+        cols=20, 
+        nPredator=10, 
+        nPrey=5, 
+        perceptWindow=3, 
         seed=0
         ) :
         
@@ -55,8 +89,15 @@ class GridWorld :
             while (x, y) in self.preys :
                 x = self.gen.randint(self.rows)
                 y = self.gen.randint(self.cols)
-            self.predators.append((x, y))
+            self.predators.append(Predator(i, (x, y)))
 
+    def broadcast (self, pId) : 
+        # Broadcast the perceptual state of 
+        # the predator at pId to the rest of
+        # the predators.
+        for pId_, predator in enumerate(predators) :
+            if pId != pId :
+                predators[pId].updateKnowledge(predator)
 
     def move(self, x, y, a) :
         # Move something on the board with
@@ -85,8 +126,8 @@ class GridWorld :
 
 
     def next(self, pId, perceptState, a) :
-        x, y = self.predators[pId]
-        self.predators[pId] = self.move(x, y, a)
+        x, y = self.predators[pId].getPosition()
+        self.predators[pId].setPosition(self.move(x, y, a))
 
         minDist = math.inf
 
@@ -94,43 +135,94 @@ class GridWorld :
         # to be outside the perceptual window.
         delX, delY = self.rows + 1, self.cols + 1
 
+        # Check whether the perceptual window
+        # contains a prey.
         for p in self.preys :
-
-            d = manhattanDistance(p, self.predators[pId])
+            p_ = self.predators[pId].getPosition()
+            d = manhattanDistance(p, p_)
             if d < minDist :
                 minDist = d
-                delX = p[0] - self.predators[pId][0]
-                delY = p[1] - self.predators[pId][1]
+                delX = p[0] - p_[0]
+                delY = p[1] - p_[1]
 
         # If a prey is within the perceptual
         # window, then return that as the new state.
-        # Otherwise return the unique pId.
+        # Otherwise the predator searches in its
+        # knowledge source for information collected
+        # from some other predator.
         if abs(delX) <= self.perceptWindow and abs(delY) <= self.perceptWindow :
             if delX == 0 and delY == 0 : 
-                # Reward of 1 for finding the 
-                # prey.
+                # Reward of 1 for finding the prey.
                 return (delX, delY), 1
             else :
-                # Otherwise a penalty for
-                # wasting a step.
+                # Otherwise a penalty for wasting step.
                 return (delX, delY), -0.1
         else :
-            return pId, -0.1
+            # Again do the same search.
+            minDist = math.inf
+            delX, delY = self.rows + 1, self.cols + 1
+            for pId_, s_ in self.predators[pId].knowledge :
+                # If this predator has a prey 
+                # in perceptual window.
+                if s_ :
+                    curPos = self.predators[pId].getPosition()
+                    otherPos = self.predators[pId_].getPosition()
+                    preyX = otherPos[0] + s_[0]
+                    preyY = otherPos[1] + s_[1]
+                    delNew = (preyX - curPos[0], preyY - curPos[1])
+                    d = manhattanDistance(delNew, (0, 0))
+                    if d < minDist :
+                        minDist = d
+                        delX, delY = delNew
+
+            if minDist < math.inf :
+                return (delX, delY), -0.1
+            else :
+                return pId, -0.1
+
+    def terminate(self) :
+        # Terminate when 1 prey is caught by
+        # any predator.
+        preySet = set(self.preys)
+        predatorSet = set([p.getPosition() for p in self.predators])
+        return not preySet.isdisjoint(predatorSet)
+
+    def jointTerminate(self) :
+        # Terminate when there are two
+        # predators which are very close 
+        # (with 1 manhattan distance) to the prey.
+        for prey in self.preys :
+            closeCount = 0
+            for predator in self.predators :
+                if manhattanDistance(prey, predator.getPosition()) <= 1 :
+                    closeCount += 1
+            if closeCount >= 2 :
+                return True
+        return False
+
 
     def toFrame (self) :
         # Convert the current state of
         # the grid world into a frame for animation.
-        frame = np.zeros((self.rows, self.cols))
+        frame = np.ones((self.rows, self.cols, 3))
         
+        red = np.array([1, 0, 0])
+        green = np.array([0, 1, 0])
+        blue = np.array([0, 0, 1])
+
         # +1 is for prey and -1 is for 
         # predator. Hence if a cell has +2, 
         # that means that there are two preys
         # in that cell.
         for x, y in self.preys :
-            frame[x, y] += 1
+            frame[x, y] = green
             
-        for x, y in self.predators :
-            frame[x, y] -= 1 
+        for p in self.predators :
+            x, y = p.getPosition()
+            if (frame[x, y] == green).all() :
+                frame[x, y] = red
+            else :
+                frame[x, y] = blue
 
         return frame
 
@@ -172,15 +264,8 @@ class GridWorld :
         frames.append(self.toFrame())
         visualizeTrajectory(frames)
 
-
-
-
     def selectAction (self, Q, s, T=1) :
         # Select action using softmax distribution
         # of Q[s] with temperature T.
         aList = self.gen.choice(self.actions, 1, p=softmax(Q[s] / T))
         return aList[0]
-
-
-
-
