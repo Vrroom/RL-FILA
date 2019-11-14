@@ -20,8 +20,8 @@ class GridWorld :
         self, 
         rows=10, 
         cols=10, 
-        nPredator=4, 
-        nPrey=2, 
+        nPredator=3, 
+        nPrey=4, 
         perceptWindow=2, 
         seed=0
         ) :
@@ -66,9 +66,9 @@ class GridWorld :
         if a == Action.Left: 
             yNew = max(0, y - 1) 
         elif a == Action.Right :
-            yNew = (y + 1) % self.cols
+            yNew = min(self.cols - 1, y + 1)
         elif a == Action.Up :
-            xNew = (x + 1) % self.rows
+            xNew = min(self.rows - 1, x + 1)
         else :
             xNew = max(0, x - 1)
 
@@ -128,7 +128,7 @@ class GridWorld :
         # in that cell.
         for x, y in self.preys :
             frame[x, y] += 1
-
+            
         for x, y in self.predators :
             frame[x, y] -= 1 
 
@@ -144,35 +144,32 @@ class GridWorld :
         while not preyCaught:
             
             frames.append(self.toFrame())
+            aList = []
 
             for i in range(self.nPredator) :
                 Q = qList[i]
                 s = predatorStates[i]
                 a = self.selectAction(Q, s, T)
+                aList.append(a)
+
+            self.movePrey()
+
+            for i in range(self.nPredator) :
+                Q = qList[i]
+                s = predatorStates[i]
+                a = aList[i]
                 # Get next state and reward
                 s_, r = self.next(i, s, a) 
                 # Check whether prey has been caught.
                 if s_ == (0, 0) :
                     preyCaught = True
-                if not s_ in Q :
-                    # If s_ is the goal state
-                    # for any predator, we 
-                    # initialize Q[s_] = [0, 0, 0, 0] 
-                    # as written in Sutton & Barto. 
-                    # Else we initialize randomly.
-                    if s_ == (0, 0) : 
-                        Q[s_] = np.zeros(4)
-                    else :
-                        Q[s_] = gen.rand(4)
 
                 # Update this predator's Q function.
                 Q[s][a.value] += BETA * (r + GAMMA * np.max(Q[s_]) - Q[s][a.value])
                 # Set up state and action for next iteration
                 predatorStates[i] = s_
 
-            # Increment the timestep and move the prey
-            self.movePrey()
-
+        frames.append(self.toFrame())
         visualizeTrajectory(frames)
 
 

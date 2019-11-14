@@ -1,6 +1,7 @@
 import numpy as np
 from GridWorld import GridWorld, Action
 import matplotlib.pyplot as plt
+from itertools import product
 from Utils import *
 
 def independentQLearning (env, stop, seed, plot=False) :
@@ -9,6 +10,17 @@ def independentQLearning (env, stop, seed, plot=False) :
     gen = np.random.RandomState(seed)
 
     qList = [dict() for _ in range(env.nPredator)]
+
+    # Initialize qList  
+    for i, Q in enumerate(qList) :
+        Q[i] = gen.rand(4)
+        perceptRange = range(-env.perceptWindow, env.perceptWindow + 1)
+        for ps in product(perceptRange, perceptRange) :
+            if ps == (0, 0) :
+                Q[ps] = np.zeros(4)
+            else :
+                Q[ps] = gen.rand(4)
+
     timestep = 0
     episode = 0
 
@@ -18,48 +30,38 @@ def independentQLearning (env, stop, seed, plot=False) :
     while stop(episode):
         # Initialization of predator states
         predatorStates = [i for i in range(env.nPredator)]
-
-        for i in range(env.nPredator) :
-            s = predatorStates[i]
-            Q = qList[i]
-            if not s in Q :
-                Q[s] = gen.rand(4)
-
-        # The epsilon-t for epsilon-t greedy
-        epsilon = 0.2 / (episode + 1)
-
         preyCaught = False
 
         while not preyCaught:
 
+            aList = []
+
             for i in range(env.nPredator) :
                 Q = qList[i]
                 s = predatorStates[i]
-                a = env.selectAction(Q, s, T)
+                a = env.selectAction(Q, s, (T / (episode + 1)))
+                aList.append(a)
+
+            # Move the prey.
+            env.movePrey()
+
+            for i in range(env.nPredator) :
+                Q = qList[i]
+                s = predatorStates[i]
+                a = aList[i]
                 # Get next state and reward
-                s_, r = env.next(i, s, a) 
+                s_, r = env.next(i, s, a)
                 # Check whether prey has been caught.
                 if s_ == (0, 0) :
                     preyCaught = True
-                if not s_ in Q :
-                    # If s_ is the goal state
-                    # for any predator, we 
-                    # initialize Q[s_] = [0, 0, 0, 0] 
-                    # as written in Sutton & Barto. 
-                    # Else we initialize randomly.
-                    if s_ == (0, 0) : 
-                        Q[s_] = np.zeros(4)
-                    else :
-                        Q[s_] = gen.rand(4)
 
                 # Update this predator's Q function.
                 Q[s][a.value] += BETA * (r + GAMMA * np.max(Q[s_]) - Q[s][a.value])
                 # Set up state and action for next iteration
                 predatorStates[i] = s_
 
-            # Increment the timestep and move the prey
+            # Increment the timestep
             timestep += 1
-            env.movePrey()
 
         # Re-initialize the environment at the
         # end of the episode
@@ -69,10 +71,9 @@ def independentQLearning (env, stop, seed, plot=False) :
 
         es.append(episode)
         ts.append(timestep)
-        print(episode, timestep)
 
     if plot :
-        plt.plot(ts, es)
+        plt.plot(es, ts)
         plt.show()
 
     return qList
