@@ -6,20 +6,20 @@ from Utils import *
 
 def shareStateQLearning (env, stop, seed) :
     gen = np.random.RandomState(seed)
-
+    nActions = len(env.actions)
     # Each predator has own action.
     qList = [dict() for _ in range(env.nPredator)]
 
     # Initialize qList  
     for i, Q in enumerate(qList) :
-        Q[i] = gen.rand(4)
+        Q[i] = gen.rand(nActions)
         xRange = range(-env.rows, env.rows + 1)
         yRange = range(-env.cols, env.cols + 1)
         for ps in product(xRange, yRange) :
             if ps == (0, 0) :
-                Q[ps] = np.zeros(4)
+                Q[ps] = np.zeros(nActions)
             else :
-                Q[ps] = gen.rand(4)
+                Q[ps] = gen.rand(nActions)
 
     timestep = 0
     episode = 0
@@ -74,20 +74,20 @@ def shareStateQLearning (env, stop, seed) :
 
 def independentQLearning (env, stop, seed) :
     gen = np.random.RandomState(seed)
-
+    nActions = len(env.actions)
     # Independent Q-Learning where each
     # predator has its own action-value function.
     qList = [dict() for _ in range(env.nPredator)]
 
     # Initialize qList  
     for i, Q in enumerate(qList) :
-        Q[i] = gen.rand(4)
+        Q[i] = gen.rand(nActions)
         perceptRange = range(-env.perceptWindow, env.perceptWindow + 1)
         for ps in product(perceptRange, perceptRange) :
             if ps == (0, 0) :
-                Q[ps] = np.zeros(4)
+                Q[ps] = np.zeros(nActions)
             else :
-                Q[ps] = gen.rand(4)
+                Q[ps] = gen.rand(nActions)
 
     timestep = 0
     episode = 0
@@ -142,17 +142,17 @@ def independentQLearning (env, stop, seed) :
 
 def main () :
     env = GridWorld()
-    _, es1, ts1 = independentQLearning(env, lambda x : x < 100, 0)
-    _, es2, ts2 = shareStateQLearning(env, lambda x : x < 100, 0)
+    _, es1, ts1 = independentQLearning(env, lambda x : x < 1000, 0)
+    qList, es2, ts2 = shareStateQLearning(env, lambda x : x < 1000, 0)
     iQL  = plt.scatter(es1, ts1, c='red')
     ssQL = plt.scatter(es2, ts2, c='blue')
     iQL.set_label("Independent")
-    ssQL.set_label("3 Predators, 1 Prey, Share State")
+    ssQL.set_label("5 Predators, 2 Prey, Share State")
     plt.xlabel("Episodes")
     plt.ylabel("Cumulative TimeSteps")
     plt.legend()
     plt.show()
-    # env.simulateTrajectory(qList)
+    env.simulateTrajectory(qList)
 
 if __name__ == "__main__" : 
     main()

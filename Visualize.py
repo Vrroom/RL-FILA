@@ -19,5 +19,5 @@ def visualizeTrajectory (frames) :
 	    
 		return [plot]
 
-	anim = FuncAnimation(fig, update, init_func=init, interval=1000, blit=True)
+	anim = FuncAnimation(fig, update, init_func=init, interval=10, blit=True)
 	plt.show()

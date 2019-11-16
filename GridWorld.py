@@ -10,6 +10,7 @@ class Action (Enum) :
     Right = 1
     Up    = 2
     Down  = 3
+    Stay  = 4
 
 # TODO : KILL PREY 
 
@@ -54,9 +55,9 @@ class GridWorld :
         self, 
         rows=20, 
         cols=20, 
-        nPredator=3, 
-        nPrey=1, 
-        perceptWindow=3, 
+        nPredator=5, 
+        nPrey=2, 
+        perceptWindow=2, 
         seed=0
         ) :
     
@@ -65,7 +66,7 @@ class GridWorld :
         self.nPredator = nPredator
         self.nPrey = nPrey
         self.gen = np.random.RandomState(seed)
-        self.actions = [Action.Left, Action.Right, Action.Up, Action.Down]
+        self.actions = [Action.Left, Action.Right, Action.Up, Action.Down, Action.Stay]
         self.perceptWindow = perceptWindow
         self.initialize()
 
@@ -110,7 +111,7 @@ class GridWorld :
             yNew = min(self.cols - 1, y + 1)
         elif a == Action.Up :
             xNew = min(self.rows - 1, x + 1)
-        else :
+        elif a == Action.Down :
             xNew = max(0, x - 1)
 
         return (xNew, yNew)
