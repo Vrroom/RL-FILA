@@ -42,9 +42,9 @@ class Predator :
         # predator's knowledge.
         s_ = otherPredator.getState()
         if isinstance(s_, tuple) :
-            self.knowledge[otherPredator.id] = s_
+            self.knowledge[otherPredator.pId] = s_
         else :
-            self.knowledge[otherPredator.id] = None
+            self.knowledge[otherPredator.pId] = None
 
 def manhattanDistance(p1, p2) : 
     return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
@@ -97,8 +97,8 @@ class GridWorld :
         # the predator at pId to the rest of
         # the predators.
         for pId_, predator in enumerate(self.predators) :
-            if pId != pId :
-                predators[pId].updateKnowledge(predator)
+            if pId != pId_ :
+                self.predators[pId].updateKnowledge(predator)
 
     def move(self, x, y, a) :
         # Move something on the board with
@@ -162,7 +162,7 @@ class GridWorld :
             # Again do the same search.
             minDist = math.inf
             delX, delY = self.rows + 1, self.cols + 1
-            for pId_, s_ in self.predators[pId].knowledge :
+            for pId_, s_ in self.predators[pId].knowledge.items() :
                 # If this predator has a prey 
                 # in perceptual window.
                 if s_ :
