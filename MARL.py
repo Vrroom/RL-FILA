@@ -142,8 +142,8 @@ def independentQLearning (env, stop, seed) :
 
 def main () :
     env = GridWorld()
-    _, es1, ts1 = independentQLearning(env, lambda x : x < 1000, 0)
-    qList, es2, ts2 = shareStateQLearning(env, lambda x : x < 1000, 0)
+    _, es1, ts1 = independentQLearning(env, lambda x : x < 10000, 0)
+    qList, es2, ts2 = shareStateQLearning(env, lambda x : x < 10000, 0)
     iQL  = plt.scatter(es1, ts1, c='red')
     ssQL = plt.scatter(es2, ts2, c='blue')
     iQL.set_label("Independent")
