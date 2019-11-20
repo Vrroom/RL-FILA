@@ -20,6 +20,7 @@ class Predator :
     def __init__ (self, pId, pos) :
         self.pId = pId
         self.pos = pos
+        self.view = pId
         self.state = pId
         self.knowledge = dict()
 
@@ -28,6 +29,12 @@ class Predator :
 
     def getState(self) :
         return self.state
+
+    def setView(self, s) :
+        self.view = s
+
+    def getView(self) :
+        return self.view
 
     def setPosition(self, pos) : 
         self.pos = pos
@@ -40,8 +47,10 @@ class Predator :
         # meaningful to contribute (in the form of a
         # finite perceptual state), then update this
         # predator's knowledge.
-        s_ = otherPredator.getState()
+        s_ = otherPredator.getView()
+        # print(s_)
         if isinstance(s_, tuple) :
+            # print("feeling helped")
             self.knowledge[otherPredator.pId] = s_
         else :
             self.knowledge[otherPredator.pId] = None
@@ -128,6 +137,7 @@ class GridWorld :
 
     def next(self, pId, perceptState, a) :
         x, y = self.predators[pId].getPosition()
+        # simple movement of the predator (doesn't let it go outside the boundaries)
         self.predators[pId].setPosition(self.move(x, y, a))
 
         minDist = math.inf
@@ -154,11 +164,16 @@ class GridWorld :
         if abs(delX) <= self.perceptWindow and abs(delY) <= self.perceptWindow :
             if delX == 0 and delY == 0 : 
                 # Reward of 1 for finding the prey.
+                self.predators[pId].setState((delX,delY))
+                self.predators[pId].setView((delX,delY))
                 return (delX, delY), 1
             else :
                 # Otherwise a penalty for wasting step.
+                self.predators[pId].setState((delX,delY))
+                self.predators[pId].setView((delX,delY))
                 return (delX, delY), -0.1
         else :
+            self.predators[pId].setView(pId)
             # Again do the same search.
             minDist = math.inf
             delX, delY = self.rows + 1, self.cols + 1
@@ -171,14 +186,17 @@ class GridWorld :
                     preyX = otherPos[0] + s_[0]
                     preyY = otherPos[1] + s_[1]
                     delNew = (preyX - curPos[0], preyY - curPos[1])
+                    # print(pId,curPos,otherPos,s_)
                     d = manhattanDistance(delNew, (0, 0))
                     if d < minDist :
                         minDist = d
                         delX, delY = delNew
 
             if minDist < math.inf :
+                self.predators[pId].setState((delX,delY))
                 return (delX, delY), -0.1
             else :
+                self.predators[pId].setState(pId)
                 return pId, -0.1
 
     def terminate(self) :
@@ -205,16 +223,20 @@ class GridWorld :
     def toFrame (self) :
         # Convert the current state of
         # the grid world into a frame for animation.
-        frame = np.ones((self.rows, self.cols, 3))
+        frame = np.ones((self.rows, self.cols, 4))
         
-        red = np.array([1, 0, 0])
-        green = np.array([0, 1, 0])
-        blue = np.array([0, 0, 1])
+        red = np.array([1, 0, 0, 1])
+        green = np.array([0, 1, 0, 1])
+        blue = np.array([0, 0, 1, 1])
 
         # +1 is for prey and -1 is for 
         # predator. Hence if a cell has +2, 
         # that means that there are two preys
         # in that cell.
+        # for p in self.predators :
+        #     x, y = p.getPosition()
+        #     rngx = (np.min(0,x-self.perceptWindow),np.max(x+self.perceptWindow,self.rows))
+        #     rngy = (np.min(0,y-self.perceptWindow),np.max(y+self.perceptWindow,self.cols))
         for x, y in self.preys :
             frame[x, y] = green
             
@@ -227,7 +249,7 @@ class GridWorld :
 
         return frame
 
-    def simulateTrajectory (self, qList) : 
+    def simulateTrajectory (self, qList, sharing=False) : 
         self.initialize()
         frames = []
         preyCaught = False
@@ -240,7 +262,7 @@ class GridWorld :
             aList = []
 
             for i in range(self.nPredator) :
-                Q = qList[i]
+                Q,_ = qList[i]
                 s = predatorStates[i]
                 a = self.selectAction(Q, s, T)
                 aList.append(a)
@@ -248,17 +270,19 @@ class GridWorld :
             self.movePrey()
 
             for i in range(self.nPredator) :
-                Q = qList[i]
+                Q,_ = qList[i]
                 s = predatorStates[i]
                 a = aList[i]
                 # Get next state and reward
                 s_, r = self.next(i, s, a) 
                 # Check whether prey has been caught.
+                if(sharing):
+                    self.broadcast(i)
                 if s_ == (0, 0) :
                     preyCaught = True
 
                 # Update this predator's Q function.
-                Q[s][a.value] += BETA * (r + GAMMA * np.max(Q[s_]) - Q[s][a.value])
+                # Q[s][a.value] += BETA * (r + GAMMA * np.max(Q[s_]) - Q[s][a.value])
                 # Set up state and action for next iteration
                 predatorStates[i] = s_
 

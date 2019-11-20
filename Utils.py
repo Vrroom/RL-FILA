@@ -1,3 +1,12 @@
 BETA = 0.8 
 GAMMA = 0.9
-T = 1.0
+T = 0.4
+import pickle
+
+def save_obj(obj, name ):
+    with open('obj/'+ name + '.pkl', 'wb+') as f:
+        pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
+
+def load_obj(name ):
+    with open('obj/' + name + '.pkl', 'rb') as f:
+        return pickle.load(f)
