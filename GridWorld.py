@@ -205,11 +205,14 @@ class GridWorld :
     def toFrame (self) :
         # Convert the current state of
         # the grid world into a frame for animation.
-        frame = np.ones((self.rows, self.cols, 3))
+        frame = np.ones((self.rows, self.cols, 4))
+        frame[:,:,3] = 0
         
-        red = np.array([1, 0, 0])
-        green = np.array([0, 1, 0])
-        blue = np.array([0, 0, 1])
+        red = np.array([1, 0, 0, 1])
+        green = np.array([0, 1, 0, 1])
+        blue = np.array([0, 0, 1, 1])
+        grey = np.array([0.5, 0.5, 0.5, 0.2])
+        background = np.array([1, 1, 1, 0])
 
         # +1 is for prey and -1 is for 
         # predator. Hence if a cell has +2, 
@@ -223,7 +226,18 @@ class GridWorld :
             if (frame[x, y] == green).all() :
                 frame[x, y] = red
             else :
+                xL = max(0, x - self.perceptWindow)
+                xR = min(x + self.perceptWindow, self.rows - 1)
+                yU = min(y + self.perceptWindow, self.cols - 1)
+                yD = max(0, y - self.perceptWindow)
+                bg = (frame[xL:(xR + 1), yD:(yU + 1)] == background)
+                for i, row in enumerate(bg) :
+                    for j, v in enumerate(row) :
+                        if v.all() :
+                            frame[xL+i, yD+j] = grey
+
                 frame[x, y] = blue
+
 
         return frame
 
