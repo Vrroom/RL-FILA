@@ -262,7 +262,10 @@ class GridWorld :
             aList = []
 
             for i in range(self.nPredator) :
-                Q,_ = qList[i]
+                if(sharing):
+                    Q,_ = qList[i]
+                else:
+                    Q = qList[i]
                 s = predatorStates[i]
                 a = self.selectAction(Q, s, T)
                 aList.append(a)
@@ -270,7 +273,10 @@ class GridWorld :
             self.movePrey()
 
             for i in range(self.nPredator) :
-                Q,_ = qList[i]
+                if(sharing):
+                    Q,_ = qList[i]
+                else:
+                    Q = qList[i]
                 s = predatorStates[i]
                 a = aList[i]
                 # Get next state and reward

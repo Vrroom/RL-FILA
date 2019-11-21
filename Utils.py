@@ -1,6 +1,7 @@
 BETA = 0.8 
 GAMMA = 0.9
 T = 0.4
+# EPLEN = 200
 import pickle
 
 def save_obj(obj, name ):
