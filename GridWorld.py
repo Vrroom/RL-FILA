@@ -60,15 +60,7 @@ def manhattanDistance(p1, p2) :
 
 class GridWorld :
     
-    def __init__ (
-        self, 
-        rows=20, 
-        cols=20, 
-        nPredator=5, 
-        nPrey=2, 
-        perceptWindow=2, 
-        seed=0
-        ) :
+    def __init__ (self,rows=20,cols=20,nPredator=5,nPrey=2,perceptWindow=2,seed=0,reward_scheme=0) :
     
         self.rows = rows
         self.cols = cols
@@ -77,6 +69,7 @@ class GridWorld :
         self.gen = np.random.RandomState(seed)
         self.actions = [Action.Left, Action.Right, Action.Up, Action.Down, Action.Stay]
         self.perceptWindow = perceptWindow
+        self.reward_scheme=reward_scheme
         self.initialize()
 
     def initialize(self) :
@@ -171,7 +164,7 @@ class GridWorld :
                 # Otherwise a penalty for wasting step.
                 self.predators[pId].setState((delX,delY))
                 self.predators[pId].setView((delX,delY))
-                return (delX, delY), -0.1
+                return (delX, delY), self.reward((delX,delY))
         else :
             self.predators[pId].setView(pId)
             # Again do the same search.
@@ -194,7 +187,7 @@ class GridWorld :
 
             if minDist < math.inf :
                 self.predators[pId].setState((delX,delY))
-                return (delX, delY), -0.1
+                return (delX, delY), self.reward((delX,delY))
             else :
                 self.predators[pId].setState(pId)
                 return pId, -0.1
@@ -219,6 +212,15 @@ class GridWorld :
                 return True
         return False
 
+    def reward(self,s):
+        if(self.reward_scheme==0):
+            return -0.1
+        elif(self.reward_scheme==1):
+            if(isinstance(s,tuple)):
+                return -0.1*((1.0*(abs(s[0]))/self.rows)**2+(1.0*(abs(s[1]))/self.cols)**2)
+            else:
+                return -0.1
+        return -0.1
 
     def toFrame (self) :
         # Convert the current state of

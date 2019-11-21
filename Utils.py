@@ -1,6 +1,6 @@
 BETA = 0.8 
 GAMMA = 0.9
-T = 0.4
+T = 1.0
 # EPLEN = 200
 import pickle
 

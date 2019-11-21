@@ -125,7 +125,7 @@ def main () :
     cols=10
     perceptWindow=4
     env = GridWorld(nPrey=nPrey,nPredator=nPredator,rows=rows,cols=cols,perceptWindow=perceptWindow,seed=10)
-    pn,es,ts,avg = Policy_Grad(env,lambda x : x < 2000,0,sharing=False)
+    pn,es,ts,avg = Policy_Grad(env,lambda x : x < 200000,0,sharing=False)
     # if(sys.argv[1]=="Train"):
     #     qList_I, es1, ts1, avg1 = QLearning(env, lambda x : x < 2000, 0,sharing=False)
     #     qList_S, es2, ts2, avg2 = QLearning(env, lambda x : x < 100000, 0,sharing=True)
