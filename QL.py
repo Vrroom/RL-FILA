@@ -195,8 +195,8 @@ def QLearning (env, stop, seed, sharing=False) :
                 # Set up state and action for next iteration
                 predatorStates[i] = s_
                 # Broadcast state to fellow predators.
-                if(sharing):
-                    env.broadcast(i)
+                # if(sharing):
+                #     env.broadcast(i)
 
             # Increment the timestep
             timestep += 1
@@ -254,8 +254,8 @@ def Test_run(env, stop, qList, seed, sharing=False):
                 # Set up state and action for next iteration
                 predatorStates[i] = s_
                 # Broadcast state to fellow predators.
-                if(sharing):
-                    env.broadcast(i)
+                # if(sharing):
+                #     env.broadcast(i)
 
             # Increment the timestep
             timestep += 1

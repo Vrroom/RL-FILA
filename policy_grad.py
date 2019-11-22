@@ -82,8 +82,8 @@ def Policy_Grad(env, stop, seed, sharing=False,EPLEN=200):
                 s_, r = env.next(i, s, a)
                 rewards[i].append(r)
                 predatorStates[i] = s_
-                if(sharing):
-                    env.broadcast(i)
+                # if(sharing):
+                #     env.broadcast(i)
             timestep += 1
 
         ####

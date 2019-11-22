@@ -94,15 +94,17 @@ class GridWorld :
                 y = self.gen.randint(self.cols)
             self.predators.append(Predator(i, (x, y)))
 
-    def broadcast (self, pId) : 
+    def broadcast (self, pId, info) : 
         # Broadcast the perceptual state of 
         # the predator at pId to the rest of
         # the predators.
         for pId_, predator in enumerate(self.predators) :
-            if pId != pId_ :
-                self.predators[pId].updateKnowledge(predator)
+            if pId != pId_:
+                self.predators[pId_].knowledge[pId] = info
+                # print(self.predators[pId_].knowledge)
+                # updateKnowledge(predator)
 
-    def move(self, x, y, a) :
+    def move(self, x, y, a, pId) :
         # Move something on the board with
         # regard to the boundary conditions.
         xNew, yNew = x, y
@@ -115,7 +117,18 @@ class GridWorld :
             xNew = min(self.rows - 1, x + 1)
         elif a == Action.Down :
             xNew = max(0, x - 1)
+        elif a == Action.Stay:
+            xNew, yNew = x, y
+            if pId != -1:
+                s_ = self.predators[pId].getView()
+                if isinstance(s_, tuple):
+                    self.broadcast(pId, s_)
+                else:
+                    self.broadcast(pId, None)
+            return (xNew, yNew)
 
+        if pId != -1:
+            self.broadcast(pId, None)
         return (xNew, yNew)
 
     def movePrey(self) :
@@ -125,14 +138,14 @@ class GridWorld :
         for i in range(self.nPrey) : 
             a = self.gen.choice(self.actions)
             x, y = self.preys[i] 
-            self.preys[i] = self.move(x, y, a)
+            self.preys[i] = self.move(x, y, a, -1)
 
 
     def next(self, pId, perceptState, a) :
         x, y = self.predators[pId].getPosition()
         # simple movement of the predator (doesn't let it go outside the boundaries)
-        self.predators[pId].setPosition(self.move(x, y, a))
-
+        self.predators[pId].setPosition(self.move(x, y, a, pId))
+        # print(self.predators[pId].getPosition())
         minDist = math.inf
 
         # This initialization is guaranteed
@@ -284,8 +297,8 @@ class GridWorld :
                 # Get next state and reward
                 s_, r = self.next(i, s, a) 
                 # Check whether prey has been caught.
-                if(sharing):
-                    self.broadcast(i)
+                # if(sharing):
+                #     self.broadcast(i)
                 if s_ == (0, 0) :
                     preyCaught = True
 
