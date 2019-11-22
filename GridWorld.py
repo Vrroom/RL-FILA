@@ -60,7 +60,7 @@ def manhattanDistance(p1, p2) :
 
 class GridWorld :
     
-    def __init__ (self,rows=20,cols=20,nPredator=5,nPrey=2,perceptWindow=2,seed=0,reward_scheme=0) :
+    def __init__ (self,rows=20,cols=20,nPredator=5,nPrey=2,perceptWindow=2,seed=0,reward_scheme=0,prey_window=10,smart_prey=False) :
     
         self.rows = rows
         self.cols = cols
@@ -70,6 +70,8 @@ class GridWorld :
         self.actions = [Action.Left, Action.Right, Action.Up, Action.Down, Action.Stay]
         self.perceptWindow = perceptWindow
         self.reward_scheme=reward_scheme
+        self.prey_window = prey_window
+        self.smart_prey = smart_prey
         self.initialize()
 
     def initialize(self) :
@@ -119,6 +121,12 @@ class GridWorld :
         return (xNew, yNew)
 
     def movePrey(self) :
+        if self.smart_prey:
+            self.movePreyExpert()
+        else:
+            self.movePreyRandom()
+
+    def movePreyRandom(self) :
         # To be called at each time step to
         # move the preys by taking a random
         # action. 
@@ -126,6 +134,50 @@ class GridWorld :
             a = self.gen.choice(self.actions)
             x, y = self.preys[i] 
             self.preys[i] = self.move(x, y, a)
+
+
+    def movePreyExpert(self):
+        # Prey moves away from nearest predator
+        # Direction is along the dimension in which predator is closest
+        # Movement is according to nearest predator if the nearest predator is
+        # within the preceptive_window
+        prey_window = self.prey_window
+
+        for i in range(self.nPrey):
+            prey_x, prey_y = self.preys[i]
+    
+            minDist = math.inf
+            nearest_pred_rel_pos = None
+    
+            # Choose the nearest predator
+            for predator in self.predators:
+                pred_x, pred_y = predator.getPosition()
+                s_ = (prey_x - pred_x, prey_y - pred_y)
+    
+                dist = manhattanDistance((0, 0), s_)
+                if dist < minDist:
+                    minDist = dist
+                    nearest_pred_rel_pos = s_
+    
+            if minDist < prey_window:
+                assert(nearest_pred_rel_pos is not None)
+                delX = nearest_pred_rel_pos[0]
+                delY = nearest_pred_rel_pos[1]
+                if abs(delX) >= abs(delY):
+                    if delX > 0:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Up)
+                    elif delX < 0:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Down)
+                    else:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Stay)
+                else:
+                    if delY > 0:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                    else:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Left)
+            else:
+                a = self.gen.choice(self.actions)
+                self.preys[i] = self.move(prey_x, prey_y, a)
 
 
     def next(self, pId, perceptState, a) :

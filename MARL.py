@@ -14,7 +14,10 @@ def main () :
     cols=10
     perceptWindow=4
     reward_scheme=1
-    env = GridWorld(nPrey=nPrey,nPredator=nPredator,rows=rows,cols=cols,perceptWindow=perceptWindow,seed=10,reward_scheme=reward_scheme)
+    prey_window = 8
+    smart_prey = True
+    env = GridWorld(nPrey=nPrey,nPredator=nPredator,rows=rows,cols=cols,perceptWindow=perceptWindow,\
+        seed=10,reward_scheme=reward_scheme,prey_window=prey_window,smart_prey=smart_prey)
     if(sys.argv[1]=="Train"):
         qList_I, es1, ts1, avg1 = QLearning(env, lambda x : x < 10000, 0,sharing=False)
         qList_S, es2, ts2, avg2 = QLearning(env, lambda x : x < 10000, 0,sharing=True)
