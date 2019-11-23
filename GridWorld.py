@@ -153,28 +153,92 @@ class GridWorld :
             for predator in self.predators:
                 pred_x, pred_y = predator.getPosition()
                 s_ = (prey_x - pred_x, prey_y - pred_y)
+
+                if abs(delX) <= self.prey_window and abs(delY) <= self.prey_window:
+                    dist = manhattanDistance((0, 0), s_)
+                    if dist < minDist:
+                        minDist = dist
+                        nearest_pred_rel_pos = s_
+
     
-                dist = manhattanDistance((0, 0), s_)
-                if dist < minDist:
-                    minDist = dist
-                    nearest_pred_rel_pos = s_
-    
-            if minDist < prey_window:
+            if minDist < math.inf:
                 assert(nearest_pred_rel_pos is not None)
                 delX = nearest_pred_rel_pos[0]
                 delY = nearest_pred_rel_pos[1]
-                if abs(delX) >= abs(delY):
-                    if delX > 0:
-                        self.preys[i] = self.move(prey_x, prey_y, Action.Up)
-                    elif delX < 0:
-                        self.preys[i] = self.move(prey_x, prey_y, Action.Down)
+
+                upper_edge = (prey_x == (self.rows - 1))
+                lower_edge = (prey_x == 0)
+                left_edge = (prey_y == 0)
+                right_edge = (prey_y == (self.cols - 1))
+
+                move_in_x = abs(delX) >= abs(delY)
+                move_up = delX > 0
+                move_right = delY > 0
+
+                move_normal = False
+
+                ### Edge cases #####
+                if move_in_x:
+                    # Supposed to move in x
+                    if (move_up and upper_edge) or ((not move_up) and lower_edge):
+                        # But can't move in x
+                        if move_right:
+                            # Move right instead
+                            if right_edge:
+                                ## Can't move right, Upper/Lower Right Corner
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Left)
+                            else:
+                                ## Can move right
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                        else:
+                            # Move left instead
+                            if left_edge:
+                                ## Can't move left, Upper/Lower Left Corner
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                            else:
+                                ## Can move left
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Left)
                     else:
-                        self.preys[i] = self.move(prey_x, prey_y, Action.Stay)
+                        # Can move in x, so move normally
+                        move_normal = True
                 else:
-                    if delY > 0:
-                        self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                    # Supposed to move in y
+                    if (move_right and right_edge) or ((not move_right) and left_edge):
+                        # But can't move in y
+                        if move_up:
+                            # Move up instead
+                            if upper_edge:
+                                ## Can't move up, Left/Right Upper corner
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Down)
+                            else:
+                                ## Can move up
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Up)
+                        else:
+                            # Move down instead
+                            if lower_edge:
+                                ## Can't move down, Left/Right Lower corner
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Up)
+                            else:
+                                ## Can move down
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Down)
                     else:
-                        self.preys[i] = self.move(prey_x, prey_y, Action.Left)
+                        # Can move in y, so move normally
+                        move_normal = True
+                ####################
+
+                #Move normal########
+                if move_normal:
+                    if move_in_x:
+                        if move_up:
+                            self.preys[i] = self.move(prey_x, prey_y, Action.Up)
+                        else:
+                            self.preys[i] = self.move(prey_x, prey_y, Action.Down)
+                    else:
+                        if move_right:
+                            self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                        else:
+                            self.preys[i] = self.move(prey_x, prey_y, Action.Left)
+                ####################
             else:
                 a = self.gen.choice(self.actions)
                 self.preys[i] = self.move(prey_x, prey_y, a)
