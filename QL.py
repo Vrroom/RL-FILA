@@ -144,16 +144,16 @@ def QLearning (env, stop, seed, sharing=False) :
     gen = np.random.RandomState(seed)
     nActions = len(env.actions)
     # Each predator has own action.
-    qList = [(dict(),dict()) for _ in range(env.nPredator)]
+    qList = [dict() for _ in range(env.nPredator)]
 
     # Initialize qList  
-    for i, (Q,QC) in enumerate(qList) :
+    for i, Q in enumerate(qList) :
         Q[i] = np.zeros(nActions)
-        QC[i] = np.zeros(nActions)
+        # QC[i] = np.zeros(nActions)
         xRange = range(-env.rows, env.rows + 1)
         yRange = range(-env.cols, env.cols + 1)
         for ps in product(xRange, yRange) :
-            QC[ps]=np.zeros(nActions)
+            # QC[ps]=np.zeros(nActions)
             if ps == (0, 0):
                 Q[ps] = np.zeros(nActions)
             else :
@@ -174,16 +174,16 @@ def QLearning (env, stop, seed, sharing=False) :
             aList = []
             # Selecting action for each predator
             for i in range(env.nPredator) :
-                Q,_ = qList[i]
+                Q = qList[i]
                 s = predatorStates[i]
                 a = env.selectAction(Q, s, (T / np.log2(episode + 3)))
                 aList.append(a)
 
             # Move the prey.
             env.movePrey()
-
+            env.movePredator(aList)
             for i in range(env.nPredator) :
-                Q,QC = qList[i]
+                Q = qList[i]
                 s = predatorStates[i]
                 a = aList[i]
                 # Get next state and reward
@@ -191,7 +191,7 @@ def QLearning (env, stop, seed, sharing=False) :
                 # print(s,s_)
                 # Update this predator's Q function.
                 Q[s][a.value] += BETA * (r + GAMMA * np.max(Q[s_]) - Q[s][a.value])
-                QC[s][a.value] +=1
+                # QC[s][a.value] +=1
                 # Set up state and action for next iteration
                 predatorStates[i] = s_
                 # Broadcast state to fellow predators.
@@ -234,16 +234,17 @@ def Test_run(env, stop, qList, seed, sharing=False):
             aList = []
             # Selecting action for each predator
             for i in range(env.nPredator) :
-                Q,_ = qList[i]
+                Q = qList[i]
                 s = predatorStates[i]
-                a = env.selectAction(Q, s, (T / np.log2(episode + 3)))
+                a = env.selectAction(Q, s, (T / 100.0))
                 aList.append(a)
 
             # Move the prey.
+            print(aList)
             env.movePrey()
-
+            env.movePredator(aList)
             for i in range(env.nPredator) :
-                Q,_ = qList[i]
+                Q = qList[i]
                 s = predatorStates[i]
                 a = aList[i]
                 # Get next state and reward

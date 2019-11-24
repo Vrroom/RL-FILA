@@ -1,7 +1,7 @@
 BETA = 0.8 
 GAMMA = 0.9
-T = 1.0
-# EPLEN = 200
+T = 0.4
+TIED_PARAMS = 5000
 import pickle
 
 def save_obj(obj, name ):

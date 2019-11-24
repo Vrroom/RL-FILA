@@ -7,42 +7,64 @@ from QL import *
 from QL_joint import *
 import sys
 import pprint
+import click
 
-def main () :
-    nPrey=2
-    nPredator=2
-    rows=10
-    cols=10
-    perceptWindow=4
+@click.command()
+@click.argument('Termination', type=click.Choice(['single', 'joint']))
+@click.option('--train', type=bool, default=True,help='Train the agents')
+@click.option('--train_graph', type=bool, default=True,help='Plot the Training graph')
+@click.option('--test', type=bool, default=True,help='Test the Agents')
+@click.option('--test_graph', type=bool, default=True,help='Plot the Testing graph')
+@click.option('--smart_prey', type=bool, default=True,help='Smart prey or random walking prey')
+@click.option('--no_predators', type=int, default=2,help='No. of Predators in the grid')
+@click.option('--no_prey', type=int, default=2,help='No. of Predators in the grid')
+@click.option('--grid_size', type=int, default=10,help='Size of the grid')
+@click.option('--percept_pred', type=int, default=4,help='Perceptual Window of Predator')
+@click.option('--percept_prey', type=int, default=4,help='Perceptual Window of Prey')
+@click.option('--save_weights', type=bool, default=True,help='Save Weights in directory Obj')
+@click.option('--load_weights', type=str, default="",help='Load the saved weigths')
+
+def run(train,train_graph,test,test_graph,smart_prey,no_predators,no_prey,grid_size,percept_pred,percept_prey,save_weights,load_weights) :
+    nPrey=no_prey
+    nPredator=no_predators
+    rows=grid_size
+    cols=grid_size
+    perceptWindow=percept_pred
     reward_scheme=1
-    env = GridWorld(nPrey=nPrey,nPredator=nPredator,rows=rows,cols=cols,perceptWindow=perceptWindow,seed=10,reward_scheme=reward_scheme,smart_prey="2")
-    if(sys.argv[1]=="Train"):
+    if(smart_prey):
+        sm="2"
+    else:
+        sm="0"
+    env = GridWorld(nPrey=nPrey,nPredator=nPredator,rows=rows,cols=cols,perceptWindow=perceptWindow,seed=10,reward_scheme=reward_scheme,prey_window=percept_prey,smart_prey=sm)
+    if(train):
         qList_I, esI, tsI, avgI = QLearning(env, lambda x : x < 20000, 0,sharing=False)
         qList_S, esS, tsS, avgS = QLearning(env, lambda x : x < 20000, 0,sharing=True)
-        save_obj(qList_I,"Super_Smart_Independent%d_%d_%d_%d_%d"%(nPrey,nPredator,rows,perceptWindow,reward_scheme))
+        if(save_weights)
+        save_obj(qList_I,"Independent%d_%d_%d_%d_%d"%(nPrey,nPredator,rows,perceptWindow,reward_scheme))
+        print("Saved weigths ")
         save_obj(qList_S,"Super_Smart_Shared%d_%d_%d_%d_%d"%(nPrey,nPredator,rows,perceptWindow,reward_scheme))
     elif(sys.argv[1]=="NoTrain"):
         qList_I=load_obj("Super_Smart_Independent%d_%d_%d_%d_%d"%(nPrey,nPredator,rows,perceptWindow,reward_scheme))
         qList_S=load_obj("Super_Smart_Shared%d_%d_%d_%d_%d"%(nPrey,nPredator,rows,perceptWindow,reward_scheme))
-        esI, tsI, avgI = Test_run(env, lambda x : x < 10000,qList_I, 22,sharing=False)
+        # esI, tsI, avgI = Test_run(env, lambda x : x < 10000,qList_I, 22,sharing=False)
         esS, tsS, avgS = Test_run(env, lambda x : x < 10000,qList_S, 22,sharing=True)
     print(avgI[-1],avgS[-1])
     # print(qList_S)
     # exit()
-    iQL  = plt.scatter(esI, avgI, c='red',s=10)
-    ssQL = plt.scatter(esS, avgS, c='blue',s=10)
-    iQL.set_label("Independent")
-    ssQL.set_label("2 Predators, 1 Prey, Share State")
-    plt.xlabel("Episodes")
-    plt.ylabel("Cumulative Average TimeSteps")
-    plt.legend()
-    plt.show()
+    # iQL  = plt.scatter(esI, avgI, c='red',s=10)
+    # ssQL = plt.scatter(esS, avgS, c='blue',s=10)
+    # iQL.set_label("Independent")
+    # ssQL.set_label("2 Predators, 2 Prey, Share State")
+    # plt.xlabel("Episodes")
+    # plt.ylabel("Cumulative Average TimeSteps")
+    # plt.legend()
+    # plt.show()
     # pp = pprint.PrettyPrinter(indent=4)
     # pp.pprint(qList_S)
     for i in range(10):
         env.simulateTrajectory(qList_S,sharing=True)
 
-def main_joint() :
+def run_joint(train,train_graph,test,test_graph,smart_prey,no_predators,no_prey,grid_size,percept_pred,percept_prey,save_weights,load_weights) :
     nPrey=1
     nPredator=2
     rows=10
@@ -98,8 +120,13 @@ def main_joint() :
         # env.simulateTrajectory(qList_A_S,aware=True,sharing=True,termination="1")
 
 
+def main(Termination,train,train_graph,test,test_graph,smart_prey,no_predators,no_prey,grid_size,percept_pred,percept_prey,save_weights,load_weights):
+    if(Termination=="single"):
+        run(train,train_graph,test,test_graph,smart_prey,no_predators,no_prey,grid_size,percept_pred,percept_prey,save_weights,load_weights)
+    else:
+        run_joint(train,train_graph,test,test_graph,smart_prey,no_predators,no_prey,grid_size,percept_pred,percept_prey,save_weights,load_weights)
+
 if __name__ == "__main__" :
-    if(sys.argv[2]=="norm"):
-        main()
-    elif(sys.argv[2]=="joint"):
-        main_joint()
+    main()
+    # print("Hello")
+    # print(Termination)

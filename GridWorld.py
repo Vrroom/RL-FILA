@@ -60,7 +60,7 @@ def manhattanDistance(p1, p2) :
 
 class GridWorld :
     
-    def __init__ (self,rows=20,cols=20,nPredator=5,nPrey=2,perceptWindow=2,seed=0,reward_scheme=0) :
+    def __init__ (self,rows=20,cols=20,nPredator=5,nPrey=2,perceptWindow=2,seed=0,reward_scheme=0,prey_window=4,smart_prey="0") :
     
         self.rows = rows
         self.cols = cols
@@ -70,6 +70,8 @@ class GridWorld :
         self.actions = [Action.Left, Action.Right, Action.Up, Action.Down, Action.Stay]
         self.perceptWindow = perceptWindow
         self.reward_scheme=reward_scheme
+        self.prey_window = prey_window
+        self.smart_prey = smart_prey
         self.initialize()
 
     def initialize(self) :
@@ -119,6 +121,14 @@ class GridWorld :
         return (xNew, yNew)
 
     def movePrey(self) :
+        if self.smart_prey=="2":
+            self.movePreyExpert()
+        elif self.smart_prey=="1":
+            self.movePreyAmateur()
+        else:
+            self.movePreyRandom()
+
+    def movePreyRandom(self) :
         # To be called at each time step to
         # move the preys by taking a random
         # action. 
@@ -127,11 +137,164 @@ class GridWorld :
             x, y = self.preys[i] 
             self.preys[i] = self.move(x, y, a)
 
+    def movePreyAmateur(self):
+        # Prey moves away from nearest predator
+        # Direction is along the dimension in which predator is closest
+        # Movement is according to nearest predator if the nearest predator is
+        # within the preceptive_window
+        prey_window = self.prey_window
+
+        for i in range(self.nPrey):
+            prey_x, prey_y = self.preys[i]
+    
+            minDist = math.inf
+            nearest_pred_rel_pos = None
+    
+            # Choose the nearest predator
+            for predator in self.predators:
+                pred_x, pred_y = predator.getPosition()
+                s_ = (prey_x - pred_x, prey_y - pred_y)
+    
+                dist = manhattanDistance((0, 0), s_)
+                if dist < minDist:
+                    minDist = dist
+                    nearest_pred_rel_pos = s_
+    
+            if minDist < prey_window:
+                assert(nearest_pred_rel_pos is not None)
+                delX = nearest_pred_rel_pos[0]
+                delY = nearest_pred_rel_pos[1]
+                if abs(delX) >= abs(delY):
+                    if delX > 0:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Up)
+                    elif delX < 0:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Down)
+                    else:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Stay)
+                else:
+                    if delY > 0:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                    else:
+                        self.preys[i] = self.move(prey_x, prey_y, Action.Left)
+            else:
+                a = self.gen.choice(self.actions)
+                self.preys[i] = self.move(prey_x, prey_y, a)
+    def movePreyExpert(self):
+        # Prey moves away from nearest predator
+        # Direction is along the dimension in which predator is closest
+        # Movement is according to nearest predator if the nearest predator is
+        # within the preceptive_window
+        prey_window = self.prey_window
+
+        for i in range(self.nPrey):
+            prey_x, prey_y = self.preys[i]
+    
+            minDist = math.inf
+            nearest_pred_rel_pos = None
+    
+            # Choose the nearest predator
+            for predator in self.predators:
+                pred_x, pred_y = predator.getPosition()
+                s_ = (prey_x - pred_x, prey_y - pred_y)
+
+                if abs(s_[0]) <= self.prey_window and abs(s_[1]) <= self.prey_window:
+                    dist = manhattanDistance((0, 0), s_)
+                    if dist < minDist:
+                        minDist = dist
+                        nearest_pred_rel_pos = s_
+
+    
+            if minDist < math.inf:
+                assert(nearest_pred_rel_pos is not None)
+                delX = nearest_pred_rel_pos[0]
+                delY = nearest_pred_rel_pos[1]
+
+                upper_edge = (prey_x == (self.rows - 1))
+                lower_edge = (prey_x == 0)
+                left_edge = (prey_y == 0)
+                right_edge = (prey_y == (self.cols - 1))
+
+                move_in_x = abs(delX) >= abs(delY)
+                move_up = delX > 0
+                move_right = delY > 0
+
+                move_normal = False
+
+                ### Edge cases #####
+                if move_in_x:
+                    # Supposed to move in x
+                    if (move_up and upper_edge) or ((not move_up) and lower_edge):
+                        # But can't move in x
+                        if move_right:
+                            # Move right instead
+                            if right_edge:
+                                ## Can't move right, Upper/Lower Right Corner
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Left)
+                            else:
+                                ## Can move right
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                        else:
+                            # Move left instead
+                            if left_edge:
+                                ## Can't move left, Upper/Lower Left Corner
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                            else:
+                                ## Can move left
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Left)
+                    else:
+                        # Can move in x, so move normally
+                        move_normal = True
+                else:
+                    # Supposed to move in y
+                    if (move_right and right_edge) or ((not move_right) and left_edge):
+                        # But can't move in y
+                        if move_up:
+                            # Move up instead
+                            if upper_edge:
+                                ## Can't move up, Left/Right Upper corner
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Down)
+                            else:
+                                ## Can move up
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Up)
+                        else:
+                            # Move down instead
+                            if lower_edge:
+                                ## Can't move down, Left/Right Lower corner
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Up)
+                            else:
+                                ## Can move down
+                                self.preys[i] = self.move(prey_x, prey_y, Action.Down)
+                    else:
+                        # Can move in y, so move normally
+                        move_normal = True
+                ####################
+
+                #Move normal########
+                if move_normal:
+                    if move_in_x:
+                        if move_up:
+                            self.preys[i] = self.move(prey_x, prey_y, Action.Up)
+                        else:
+                            self.preys[i] = self.move(prey_x, prey_y, Action.Down)
+                    else:
+                        if move_right:
+                            self.preys[i] = self.move(prey_x, prey_y, Action.Right)
+                        else:
+                            self.preys[i] = self.move(prey_x, prey_y, Action.Left)
+                ####################
+            else:
+                a = self.gen.choice(self.actions)
+                self.preys[i] = self.move(prey_x, prey_y, a)
+
+    def movePredator(self,aList):
+        for _pId in range(self.nPredator):
+            x, y = self.predators[_pId].getPosition()
+            self.predators[_pId].setPosition(self.move(x, y, aList[_pId]))
 
     def next(self, pId, perceptState, a) :
-        x, y = self.predators[pId].getPosition()
-        # simple movement of the predator (doesn't let it go outside the boundaries)
-        self.predators[pId].setPosition(self.move(x, y, a))
+        # x, y = self.predators[pId].getPosition()
+        # # simple movement of the predator (doesn't let it go outside the boundaries)
+        # self.predators[pId].setPosition(self.move(x, y, a))
 
         minDist = math.inf
 
@@ -141,8 +304,8 @@ class GridWorld :
 
         # Check whether the perceptual window
         # contains a prey.
+        p_ = self.predators[pId].getPosition()
         for p in self.preys :
-            p_ = self.predators[pId].getPosition()
             d = manhattanDistance(p, p_)
             if d < minDist :
                 minDist = d
@@ -158,12 +321,12 @@ class GridWorld :
             if delX == 0 and delY == 0 : 
                 # Reward of 1 for finding the prey.
                 self.predators[pId].setState((delX,delY))
-                self.predators[pId].setView((delX,delY))
-                return (delX, delY), 1
+                self.predators[pId].setView((delX+p_[0],delY+p_[1]))
+                return (delX, delY), self.reward((delX,delY))
             else :
                 # Otherwise a penalty for wasting step.
                 self.predators[pId].setState((delX,delY))
-                self.predators[pId].setView((delX,delY))
+                self.predators[pId].setView((delX+p_[0],delY+p_[1]))
                 return (delX, delY), self.reward((delX,delY))
         else :
             self.predators[pId].setView(pId)
@@ -175,9 +338,9 @@ class GridWorld :
                 # in perceptual window.
                 if s_ :
                     curPos = self.predators[pId].getPosition()
-                    otherPos = self.predators[pId_].getPosition()
-                    preyX = otherPos[0] + s_[0]
-                    preyY = otherPos[1] + s_[1]
+                    # otherPos = self.predators[pId_].getPosition()
+                    preyX = s_[0]
+                    preyY = s_[1]
                     delNew = (preyX - curPos[0], preyY - curPos[1])
                     # print(pId,curPos,otherPos,s_)
                     d = manhattanDistance(delNew, (0, 0))
@@ -191,6 +354,84 @@ class GridWorld :
             else :
                 self.predators[pId].setState(pId)
                 return pId, -0.1
+    def joint_next(self, pId, perceptState, a) :
+        # x, y = self.predators[pId].getPosition()
+        # # simple movement of the predator (doesn't let it go outside the boundaries)
+        # self.predators[pId].setPosition(self.move(x, y, a))
+
+        minDist = math.inf
+
+        # This initialization is guaranteed
+        # to be outside the perceptual window.
+        delX, delY = self.rows + 1, self.cols + 1
+        ptX, ptY = self.rows + 1, self.cols + 1
+        # Check whether the perceptual window
+        # contains a prey.
+        p_ = self.predators[pId].getPosition()
+        for p in self.preys :
+            d = manhattanDistance(p, p_)
+            if d < minDist :
+                minDist = d
+                delX = p[0] - p_[0]
+                delY = p[1] - p_[1]
+
+        minDist_Pred = math.inf
+        for _pId in range(self.nPredator):
+            if(pId==_pId):
+                continue
+            pr = self.predators[_pId].getPosition()
+            d_ = manhattanDistance(pr,p_)
+            if d_ < minDist_Pred:
+                minDist_Pred=d_
+                ptX = pr[0] - p_[0]
+                ptY = pr[1] - p_[1]
+
+
+            
+
+        # If a prey is within the perceptual
+        # window, then return that as the new state.
+        # Otherwise the predator searches in its
+        # knowledge source for information collected
+        # from some other predator.
+        if abs(delX) <= self.perceptWindow and abs(delY) <= self.perceptWindow:
+            self.predators[pId].setView((delX+p_[0],delY+p_[1]))
+            return ((delX,delY),(ptX,ptY)),self.reward((delX,delY))
+            # if delX == 0 and delY == 0 : 
+            #     # Reward of 1 for finding the prey.
+            #     self.predators[pId].setState((delX,delY))
+            #     self.predators[pId].setView((delX,delY))
+            #     return (delX, delY), 1
+            # else :
+            #     # Otherwise a penalty for wasting step.
+            #     self.predators[pId].setState((delX,delY))
+            #     return (delX, delY), self.reward((delX,delY))
+        else :
+            self.predators[pId].setView(pId)
+            # Again do the same search.
+            minDist = math.inf
+            delX, delY = self.rows + 1, self.cols + 1
+            for pId_, s_ in self.predators[pId].knowledge.items() :
+                # If this predator has a prey 
+                # in perceptual window.
+                if s_ :
+                    curPos = self.predators[pId].getPosition()
+                    otherPos = self.predators[pId_].getPosition()
+                    preyX = s_[0]
+                    preyY = s_[1]
+                    delNew = (preyX - curPos[0], preyY - curPos[1])
+                    # print(pId,curPos,otherPos,s_)
+                    d = manhattanDistance(delNew, (0, 0))
+                    if d < minDist :
+                        minDist = d
+                        delX, delY = delNew
+
+            if minDist < math.inf :
+                self.predators[pId].setState((delX,delY))
+                return ((delX, delY),(ptX,ptY)), self.reward((delX,delY))
+            else :
+                self.predators[pId].setState(pId)
+                return (pId,(ptX,ptY)), -0.1
 
     def terminate(self) :
         # Terminate when 1 prey is caught by
@@ -214,10 +455,20 @@ class GridWorld :
 
     def reward(self,s):
         if(self.reward_scheme==0):
-            return -0.1
+            if(s==(0,0)):
+               return 1
+            else:
+                return -0.1
         elif(self.reward_scheme==1):
             if(isinstance(s,tuple)):
+                # if(s==(0,0)):
+                #     return 1.0
                 return -0.1*((1.0*(abs(s[0]))/self.rows)**2+(1.0*(abs(s[1]))/self.cols)**2)
+            else:
+                return -0.1
+        elif(self.reward_scheme==2):
+            if(manhattanDistance((0,0),s)<=1 and self.jointTerminate):
+                return 1.0
             else:
                 return -0.1
         return -0.1
@@ -251,51 +502,60 @@ class GridWorld :
 
         return frame
 
-    def simulateTrajectory (self, qList, sharing=False) : 
+    def simulateTrajectory (self, qList,aware=False,sharing=False,termination="0") : 
         self.initialize()
         frames = []
         preyCaught = False
 
         predatorStates = [i for i in range(self.nPredator)]
-
+        ts=0
         while not preyCaught:
             
             frames.append(self.toFrame())
             aList = []
 
             for i in range(self.nPredator) :
-                if(sharing):
-                    Q,_ = qList[i]
-                else:
-                    Q = qList[i]
+                # if(sharing):
+                #     Q,_ = qList[i]
+                # else:
+                Q = qList[i]
                 s = predatorStates[i]
-                a = self.selectAction(Q, s, T)
+                # print(Q[s])
+                a = self.selectAction(Q, s, T/100.0)
                 aList.append(a)
 
             self.movePrey()
-
+            self.movePredator(aList)
             for i in range(self.nPredator) :
-                if(sharing):
-                    Q,_ = qList[i]
-                else:
-                    Q = qList[i]
+                # if(sharing):
+                #     Q,_ = qList[i]
+                # else:
+                Q = qList[i]
                 s = predatorStates[i]
                 a = aList[i]
                 # Get next state and reward
-                s_, r = self.next(i, s, a) 
+                if(aware):
+                    s_, r = self.joint_next(i, s, a)
+                else:
+                    s_, r = self.next(i, s, a) 
                 # Check whether prey has been caught.
                 if(sharing):
                     self.broadcast(i)
-                if s_ == (0, 0) :
-                    preyCaught = True
+                # if s_ == (0, 0) :
+                #     preyCaught = True
 
                 # Update this predator's Q function.
                 # Q[s][a.value] += BETA * (r + GAMMA * np.max(Q[s_]) - Q[s][a.value])
                 # Set up state and action for next iteration
                 predatorStates[i] = s_
-
+            if(termination=="0"):
+                preyCaught = self.terminate()
+            elif(termination=="1"):
+                preyCaught = self.jointTerminate()
+            ts+=1
         frames.append(self.toFrame())
         visualizeTrajectory(frames)
+        print(ts)
 
     def selectAction (self, Q, s, T=1) :
         # Select action using softmax distribution
