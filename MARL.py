@@ -28,7 +28,7 @@ def main () :
     iQL  = plt.scatter(esI, avgI, c='red',s=10)
     ssQL = plt.scatter(esS, avgS, c='blue',s=10)
     iQL.set_label("Independent")
-    ssQL.set_label("2 Predators, 1 Prey, Share State")
+    ssQL.set_label("2 Predators, 1 Prey, Comm as Act")
     plt.xlabel("Episodes")
     plt.ylabel("Cumulative Avergae TimeSteps")
     plt.legend()

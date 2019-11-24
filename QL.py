@@ -222,6 +222,9 @@ def Test_run(env, stop, qList, seed, sharing=False):
     timestep = 0
     episode = 0
 
+    bcount = 0
+    totalcount = 0
+
     ts = []
     es = []
     avg=[]
@@ -238,6 +241,10 @@ def Test_run(env, stop, qList, seed, sharing=False):
                 s = predatorStates[i]
                 a = env.selectAction(Q, s, (T / np.log2(episode + 3)))
                 aList.append(a)
+
+                if a == Action.Stay:
+                    bcount = bcount + 1
+                totalcount = totalcount + 1
 
             # Move the prey.
             env.movePrey()
@@ -272,4 +279,7 @@ def Test_run(env, stop, qList, seed, sharing=False):
         ts.append(timestep)
         avg.append(1.0*timestep/episode)
     print("End")
+
+    print(bcount)
+    print(totalcount)
     return es, ts, avg
